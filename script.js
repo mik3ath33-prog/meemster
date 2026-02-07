@@ -4,14 +4,15 @@ const ctx = canvas.getContext('2d');
 
 // UI elements
 const imageUpload = document.getElementById('imageUpload');
-const topTextInput = document.getElementById('topText');
-const bottomTextInput = document.getElementById('bottomText');
 const fontSizeSlider = document.getElementById('fontSize');
 const fontSizeValue = document.getElementById('fontSizeValue');
 const fontFamilySelect = document.getElementById('fontFamily');
 const textColorInput = document.getElementById('textColor');
 const downloadBtn = document.getElementById('downloadBtn');
 const fileName = document.getElementById('fileName');
+const addTextBtn = document.getElementById('addTextBtn');
+const layerTextarea = document.getElementById('layerText');
+const deleteLayerBtn = document.getElementById('deleteLayerBtn');
 
 // Zoom elements
 const zoomInBtn = document.getElementById('zoomIn');
@@ -23,30 +24,30 @@ const canvasZoomWrapper = document.getElementById('canvasZoomWrapper');
 
 // State
 let image = null;
-let fontSize = 40;
-let fontFamily = 'Impact';
-let textColor = '#FFFFFF';
+let imageDataUrl = null;
 let selectedTemplate = null;
-let topTextX = null;
-let topTextY = null;
-let bottomTextX = null;
-let bottomTextY = null;
-let dragging = null; // 'top', 'bottom', or null
-let dragOffsetX = 0;
-let dragOffsetY = 0;
+
+// Zoom state
 let zoomLevel = 1;
 const ZOOM_STEP = 0.25;
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 4;
 
-// Template images from assets folder
-const templates = [
-    { name: 'Template 1', path: 'assets/30b1gx.jpg' },
-    { name: 'Template 2', path: 'assets/best-meme-templates-04.avif' },
-    { name: 'Template 3', path: 'assets/images.jpg' },
-    { name: 'Template 4', path: 'assets/IMG_7501 (1).jpg' },
-    { name: 'Template 5', path: 'assets/IMG_7501.jpg' }
-];
+// Text layer system
+let textLayers = [];
+let nextLayerId = 1;
+let selectedLayerId = null;
+
+// Interaction state
+let interaction = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartLayer = null;
+
+// Constants
+const HANDLE_SIZE = 8;
+const DELETE_BTN_RADIUS = 9;
+const MIN_BOX_SIZE = 30;
 
 // Initialize canvas
 canvas.width = 600;
@@ -58,59 +59,48 @@ canvas.height = 400;
 function loadTemplates() {
     const templateGrid = document.getElementById('templateGrid');
     
-    templates.forEach((template, index) => {
+    TEMPLATE_DATA.forEach((template, index) => {
         const templateItem = document.createElement('div');
         templateItem.className = 'template-item';
         templateItem.dataset.index = index;
         
         const img = document.createElement('img');
-        img.src = template.path;
+        img.src = template.data;
         img.alt = template.name;
-        img.onerror = () => {
-            templateItem.style.display = 'none';
-        };
         
         templateItem.appendChild(img);
         templateItem.addEventListener('click', () => selectTemplate(template, templateItem));
-        
         templateGrid.appendChild(templateItem);
     });
 }
 
 function selectTemplate(template, element) {
-    // Remove previous selection
     document.querySelectorAll('.template-item').forEach(item => {
         item.classList.remove('selected');
     });
     
-    // Add selection to clicked item
     element.classList.add('selected');
     selectedTemplate = template;
     
-    // Clear file input
     imageUpload.value = '';
     fileName.textContent = '';
     
-    // Reset text positions
-    topTextX = null;
-    topTextY = null;
-    bottomTextX = null;
-    bottomTextY = null;
+    textLayers = [];
+    selectedLayerId = null;
+    updateLayerPanel();
     
-    // Load template image
+    // Templates are already data URLs, so load directly
+    imageDataUrl = template.data;
     const img = new Image();
     img.onload = () => {
         image = img;
         drawCanvas();
         downloadBtn.disabled = false;
+        addTextBtn.disabled = false;
     };
-    img.onerror = () => {
-        alert('Error loading template image.');
-    };
-    img.src = template.path;
+    img.src = imageDataUrl;
 }
 
-// Initialize templates on page load
 loadTemplates();
 
 // ============================================
@@ -120,70 +110,35 @@ imageUpload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file.');
         return;
     }
     
-    // Clear template selection
     document.querySelectorAll('.template-item').forEach(item => {
         item.classList.remove('selected');
     });
     selectedTemplate = null;
     
-    // Reset text positions
-    topTextX = null;
-    topTextY = null;
-    bottomTextX = null;
-    bottomTextY = null;
+    textLayers = [];
+    selectedLayerId = null;
+    updateLayerPanel();
     
     fileName.textContent = file.name;
     const reader = new FileReader();
     
     reader.onload = (event) => {
+        imageDataUrl = event.target.result;
         const img = new Image();
         img.onload = () => {
             image = img;
             drawCanvas();
             downloadBtn.disabled = false;
+            addTextBtn.disabled = false;
         };
-        img.onerror = () => {
-            alert('Error loading image. Please try another file.');
-        };
-        img.src = event.target.result;
-    };
-    
-    reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+        img.src = imageDataUrl;
     };
     
     reader.readAsDataURL(file);
-});
-
-// ============================================
-// FONT SIZE CONTROL
-// ============================================
-fontSizeSlider.addEventListener('input', (e) => {
-    fontSize = parseInt(e.target.value);
-    fontSizeValue.textContent = fontSize;
-    drawCanvas();
-});
-
-// ============================================
-// FONT FAMILY CONTROL
-// ============================================
-fontFamilySelect.addEventListener('change', (e) => {
-    fontFamily = e.target.value;
-    drawCanvas();
-});
-
-// ============================================
-// TEXT COLOR CONTROL
-// ============================================
-textColorInput.addEventListener('input', (e) => {
-    textColor = e.target.value;
-    drawCanvas();
 });
 
 // ============================================
@@ -191,7 +146,6 @@ textColorInput.addEventListener('input', (e) => {
 // ============================================
 function updateZoom() {
     canvas.style.transform = `scale(${zoomLevel})`;
-    // Update wrapper size so the scroll container knows the content size
     canvasZoomWrapper.style.width = (canvas.width * zoomLevel) + 'px';
     canvasZoomWrapper.style.height = (canvas.height * zoomLevel) + 'px';
     zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
@@ -216,9 +170,8 @@ zoomResetBtn.addEventListener('click', () => {
     updateZoom();
 });
 
-// Mouse wheel zoom (Ctrl+scroll)
 canvasContainer.addEventListener('wheel', (e) => {
-    if (e.ctrlKey || e.metaKey) {
+    if (e.altKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
         const newZoom = Math.round((zoomLevel + delta) * 100) / 100;
@@ -228,211 +181,350 @@ canvasContainer.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 // ============================================
-// TEXT INPUT HANDLERS
+// TEXT LAYER MANAGEMENT
 // ============================================
-topTextInput.addEventListener('input', () => {
-    // Initialize position if not set
-    const topText = topTextInput.value.trim();
-    if (topText && (topTextX === null || topTextY === null)) {
-        topTextX = canvas.width / 2;
-        topTextY = 20;
-    }
-    if (!topText) {
-        topTextX = null;
-        topTextY = null;
-    }
-    drawCanvas();
-});
-
-bottomTextInput.addEventListener('input', () => {
-    // Initialize position if not set
-    const bottomText = bottomTextInput.value.trim();
-    if (bottomText && (bottomTextX === null || bottomTextY === null)) {
-        const textHeight = getTextHeight(bottomText);
-        bottomTextX = canvas.width / 2;
-        bottomTextY = canvas.height - textHeight - 20;
-    }
-    if (!bottomText) {
-        bottomTextX = null;
-        bottomTextY = null;
-    }
-    drawCanvas();
-});
-
-// ============================================
-// TEXT RENDERING FUNCTIONS
-// ============================================
-
-/**
- * Calculate the height of text when wrapped (without drawing)
- * @param {string} text - The text to measure
- * @returns {number} - Total height in pixels
- */
-function getTextHeight(text) {
-    if (!text) return 0;
+function addTextLayer() {
+    if (!image) return;
     
-    ctx.font = `${fontSize}px ${fontFamily}`;
-    const maxWidth = canvas.width - 40;
-    const words = text.split(' ');
-    let line = '';
-    let lineCount = 1;
-
-    for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-
-        if (testWidth > maxWidth && i > 0) {
-            lineCount++;
-            line = words[i] + ' ';
-        } else {
-            line = testLine;
-        }
-    }
+    const layer = {
+        id: nextLayerId++,
+        text: 'Text',
+        x: Math.round(canvas.width / 2 - 100),
+        y: Math.round(canvas.height / 2 - 25),
+        width: 200,
+        height: 50,
+        fontSize: 32,
+        fontFamily: 'Impact',
+        textColor: '#FFFFFF'
+    };
+    textLayers.push(layer);
+    selectedLayerId = layer.id;
+    updateLayerPanel();
+    drawCanvas();
     
-    return lineCount * (fontSize + 10) - 10;
+    layerTextarea.focus();
+    layerTextarea.select();
 }
 
-/**
- * Draw text on canvas with white fill and black stroke
- * @param {string} text - The text to draw
- * @param {number} x - X position (center point)
- * @param {number} y - Y position (top point)
- */
-function drawText(text, x, y) {
-    if (!text) return;
-
-    // Set font properties
-    ctx.font = `${fontSize}px ${fontFamily}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    
-    // Calculate text wrapping
-    const maxWidth = canvas.width - 40;
-    const words = text.split(' ');
-    let line = '';
-    let lineY = y;
-    let lines = [];
-
-    // Wrap text if it exceeds max width
-    for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-
-        if (testWidth > maxWidth && i > 0) {
-            lines.push({ text: line.trim(), y: lineY });
-            line = words[i] + ' ';
-            lineY += fontSize + 10;
-        } else {
-            line = testLine;
-        }
+function deleteTextLayer(id) {
+    textLayers = textLayers.filter(l => l.id !== id);
+    if (selectedLayerId === id) {
+        selectedLayerId = null;
     }
-    lines.push({ text: line.trim(), y: lineY });
+    updateLayerPanel();
+    drawCanvas();
+}
 
-    // Draw each line with black stroke and custom color fill
-    lines.forEach(lineData => {
-        // Draw black stroke (outline) first
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = Math.max(1, fontSize / 20);
-        ctx.lineJoin = 'round';
-        ctx.miterLimit = 2;
-        ctx.strokeText(lineData.text, x, lineData.y);
+function getSelectedLayer() {
+    if (selectedLayerId === null) return null;
+    return textLayers.find(l => l.id === selectedLayerId) || null;
+}
+
+function updateLayerPanel() {
+    const layerControlsEls = document.querySelectorAll('.layer-controls');
+    const layer = getSelectedLayer();
+    
+    if (layer) {
+        layerControlsEls.forEach(el => el.style.display = '');
+        layerTextarea.value = layer.text;
+        fontSizeSlider.value = layer.fontSize;
+        fontSizeValue.textContent = layer.fontSize;
+        fontFamilySelect.value = layer.fontFamily;
+        textColorInput.value = layer.textColor;
+    } else {
+        layerControlsEls.forEach(el => el.style.display = 'none');
+    }
+}
+
+// ============================================
+// CONTROL EVENT HANDLERS
+// ============================================
+addTextBtn.addEventListener('click', addTextLayer);
+
+deleteLayerBtn.addEventListener('click', () => {
+    if (selectedLayerId !== null) {
+        deleteTextLayer(selectedLayerId);
+    }
+});
+
+layerTextarea.addEventListener('input', () => {
+    const layer = getSelectedLayer();
+    if (layer) {
+        layer.text = layerTextarea.value;
+        drawCanvas();
+    }
+});
+
+fontSizeSlider.addEventListener('input', (e) => {
+    const layer = getSelectedLayer();
+    if (layer) {
+        layer.fontSize = parseInt(e.target.value);
+        fontSizeValue.textContent = layer.fontSize;
+        drawCanvas();
+    }
+});
+
+fontFamilySelect.addEventListener('change', (e) => {
+    const layer = getSelectedLayer();
+    if (layer) {
+        layer.fontFamily = e.target.value;
+        drawCanvas();
+    }
+});
+
+textColorInput.addEventListener('input', (e) => {
+    const layer = getSelectedLayer();
+    if (layer) {
+        layer.textColor = e.target.value;
+        drawCanvas();
+    }
+});
+
+// ============================================
+// TEXT RENDERING
+// ============================================
+function drawLayerText(layer, targetCtx) {
+    if (!layer.text) return;
+    const c = targetCtx || ctx;
+    
+    c.font = `${layer.fontSize}px ${layer.fontFamily}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'top';
+    
+    const maxWidth = layer.width;
+    const lineHeight = layer.fontSize * 1.25;
+    const lines = [];
+    
+    const paragraphs = layer.text.split('\n');
+    
+    for (const para of paragraphs) {
+        if (para === '') {
+            lines.push('');
+            continue;
+        }
+        const words = para.split(' ');
+        let currentLine = '';
         
-        // Draw text fill with selected color
-        ctx.fillStyle = textColor;
-        ctx.fillText(lineData.text, x, lineData.y);
+        for (const word of words) {
+            const testLine = currentLine ? currentLine + ' ' + word : word;
+            const metrics = c.measureText(testLine);
+            
+            if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+    }
+    
+    const totalTextHeight = lines.length * lineHeight;
+    const startY = layer.y + Math.max(0, (layer.height - totalTextHeight) / 2);
+    const centerX = layer.x + layer.width / 2;
+    
+    c.save();
+    c.beginPath();
+    c.rect(layer.x, layer.y, layer.width, layer.height);
+    c.clip();
+    
+    lines.forEach((line, i) => {
+        const y = startY + i * lineHeight;
+        
+        c.strokeStyle = '#000000';
+        c.lineWidth = Math.max(1, layer.fontSize / 15);
+        c.lineJoin = 'round';
+        c.miterLimit = 2;
+        c.strokeText(line, centerX, y);
+        
+        c.fillStyle = layer.textColor;
+        c.fillText(line, centerX, y);
     });
+    
+    c.restore();
 }
 
 // ============================================
-// CANVAS DRAWING FUNCTION
+// SELECTION UI RENDERING
 // ============================================
+function getHandlePositions(layer) {
+    return [
+        { type: 'nw', x: layer.x, y: layer.y },
+        { type: 'ne', x: layer.x + layer.width, y: layer.y },
+        { type: 'sw', x: layer.x, y: layer.y + layer.height },
+        { type: 'se', x: layer.x + layer.width, y: layer.y + layer.height }
+    ];
+}
 
-/**
- * Main function to draw the entire canvas (image + text)
- */
+function getDeleteBtnCenter(layer) {
+    return {
+        x: layer.x + layer.width - DELETE_BTN_RADIUS - 3,
+        y: layer.y + DELETE_BTN_RADIUS + 3
+    };
+}
+
+function drawSelectionUI(layer) {
+    ctx.strokeStyle = '#d97757';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
+    ctx.setLineDash([]);
+    
+    const handles = getHandlePositions(layer);
+    handles.forEach(h => {
+        ctx.fillStyle = '#d97757';
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 1;
+        ctx.fillRect(h.x - HANDLE_SIZE / 2, h.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+        ctx.strokeRect(h.x - HANDLE_SIZE / 2, h.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+    });
+    
+    const del = getDeleteBtnCenter(layer);
+    
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.arc(del.x, del.y, DELETE_BTN_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(del.x, del.y, DELETE_BTN_RADIUS, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    const r = 4;
+    ctx.beginPath();
+    ctx.moveTo(del.x - r, del.y - r);
+    ctx.lineTo(del.x + r, del.y + r);
+    ctx.moveTo(del.x + r, del.y - r);
+    ctx.lineTo(del.x - r, del.y + r);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+}
+
+// ============================================
+// MAIN CANVAS DRAWING
+// ============================================
 function drawCanvas() {
     if (!image) return;
-
-    // Calculate dimensions to maintain aspect ratio
+    
     const maxWidth = 600;
     const maxHeight = 400;
     let width = image.width;
     let height = image.height;
-
-    // Scale down if too wide
+    
     if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
     }
-
-    // Scale down if too tall
     if (height > maxHeight) {
         width = (width * maxHeight) / height;
         height = maxHeight;
     }
-
-    // Round to integers (canvas dimensions are always integers,
-    // so float comparisons would reset positions every frame)
+    
     width = Math.round(width);
     height = Math.round(height);
-
-    // Update canvas size only if dimensions actually changed
+    
     if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
-        // Reset text positions when canvas size changes
-        topTextX = null;
-        topTextY = null;
-        bottomTextX = null;
-        bottomTextY = null;
     }
-
-    // Keep zoom wrapper in sync with canvas dimensions
+    
     updateZoom();
-
-    // Clear canvas
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw image
     ctx.drawImage(image, 0, 0, width, height);
-
-    // Get text values
-    const topText = topTextInput.value.trim();
-    const bottomText = bottomTextInput.value.trim();
-
-    // Draw top text at stored position or default
-    if (topText) {
-        if (topTextX === null || topTextY === null) {
-            topTextX = canvas.width / 2;
-            topTextY = 20;
+    
+    textLayers.forEach(layer => {
+        drawLayerText(layer);
+    });
+    
+    if (selectedLayerId !== null) {
+        const layer = getSelectedLayer();
+        if (layer) {
+            drawSelectionUI(layer);
         }
-        drawText(topText, topTextX, topTextY);
-    } else {
-        topTextX = null;
-        topTextY = null;
-    }
-
-    // Draw bottom text at stored position or default
-    if (bottomText) {
-        if (bottomTextX === null || bottomTextY === null) {
-            const textHeight = getTextHeight(bottomText);
-            bottomTextX = canvas.width / 2;
-            bottomTextY = canvas.height - textHeight - 20;
-        }
-        drawText(bottomText, bottomTextX, bottomTextY);
-    } else {
-        bottomTextX = null;
-        bottomTextY = null;
     }
 }
 
 // ============================================
-// TEXT DRAGGING FUNCTIONALITY
+// HIT TESTING
 // ============================================
+function hitTest(mouseX, mouseY) {
+    if (selectedLayerId !== null) {
+        const layer = getSelectedLayer();
+        if (layer) {
+            const del = getDeleteBtnCenter(layer);
+            if (Math.hypot(mouseX - del.x, mouseY - del.y) <= DELETE_BTN_RADIUS + 3) {
+                return { type: 'delete', layerId: layer.id };
+            }
+            
+            const handles = getHandlePositions(layer);
+            for (const handle of handles) {
+                if (Math.abs(mouseX - handle.x) <= HANDLE_SIZE + 2 &&
+                    Math.abs(mouseY - handle.y) <= HANDLE_SIZE + 2) {
+                    return { type: 'resize', handle: handle.type, layerId: layer.id };
+                }
+            }
+        }
+    }
+    
+    for (let i = textLayers.length - 1; i >= 0; i--) {
+        const layer = textLayers[i];
+        if (mouseX >= layer.x && mouseX <= layer.x + layer.width &&
+            mouseY >= layer.y && mouseY <= layer.y + layer.height) {
+            return { type: 'select', layerId: layer.id };
+        }
+    }
+    
+    return { type: 'none' };
+}
 
-// Get mouse position relative to canvas
+function getResizeCursor(handle) {
+    switch (handle) {
+        case 'nw': case 'se': return 'nwse-resize';
+        case 'ne': case 'sw': return 'nesw-resize';
+        default: return 'default';
+    }
+}
+
+function resizeLayer(layer, handle, dx, dy) {
+    const orig = dragStartLayer;
+    
+    switch (handle) {
+        case 'se':
+            layer.width = Math.max(MIN_BOX_SIZE, orig.width + dx);
+            layer.height = Math.max(MIN_BOX_SIZE, orig.height + dy);
+            layer.x = orig.x;
+            layer.y = orig.y;
+            break;
+        case 'sw':
+            layer.width = Math.max(MIN_BOX_SIZE, orig.width - dx);
+            layer.x = orig.x + orig.width - layer.width;
+            layer.y = orig.y;
+            layer.height = Math.max(MIN_BOX_SIZE, orig.height + dy);
+            break;
+        case 'ne':
+            layer.width = Math.max(MIN_BOX_SIZE, orig.width + dx);
+            layer.height = Math.max(MIN_BOX_SIZE, orig.height - dy);
+            layer.x = orig.x;
+            layer.y = orig.y + orig.height - layer.height;
+            break;
+        case 'nw':
+            layer.width = Math.max(MIN_BOX_SIZE, orig.width - dx);
+            layer.height = Math.max(MIN_BOX_SIZE, orig.height - dy);
+            layer.x = orig.x + orig.width - layer.width;
+            layer.y = orig.y + orig.height - layer.height;
+            break;
+    }
+}
+
+// ============================================
+// MOUSE EVENT HANDLERS
+// ============================================
 function getMousePos(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -443,136 +535,146 @@ function getMousePos(e) {
     };
 }
 
-// Simple check if point is near text (within reasonable distance)
-function isNearText(mouseX, mouseY, textX, textY, text) {
-    if (!text || textX === null || textY === null) return false;
-    
-    // Set up context for measurement
-    ctx.font = `${fontSize}px ${fontFamily}`;
-    const metrics = ctx.measureText(text);
-    const textWidth = metrics.width;
-    const textHeight = fontSize;
-    
-    // Check if mouse is within text bounds (with padding)
-    const padding = 20;
-    return mouseX >= textX - textWidth/2 - padding &&
-           mouseX <= textX + textWidth/2 + padding &&
-           mouseY >= textY - padding &&
-           mouseY <= textY + textHeight + padding;
-}
-
-// Mouse down - start drag
 canvas.addEventListener('mousedown', (e) => {
     if (!image) return;
     
     const pos = getMousePos(e);
-    const topText = topTextInput.value.trim();
-    const bottomText = bottomTextInput.value.trim();
+    const hit = hitTest(pos.x, pos.y);
     
-    // Initialize positions if needed
-    if (topText && (topTextX === null || topTextY === null)) {
-        topTextX = canvas.width / 2;
-        topTextY = 20;
-    }
-    if (bottomText && (bottomTextX === null || bottomTextY === null)) {
-        const textHeight = getTextHeight(bottomText);
-        bottomTextX = canvas.width / 2;
-        bottomTextY = canvas.height - textHeight - 20;
+    if (hit.type === 'delete') {
+        deleteTextLayer(hit.layerId);
+        return;
     }
     
-    // Check top text
-    if (topText && topTextX !== null && topTextY !== null) {
-        if (isNearText(pos.x, pos.y, topTextX, topTextY, topText)) {
-            dragging = 'top';
-            dragOffsetX = pos.x - topTextX;
-            dragOffsetY = pos.y - topTextY;
-            canvas.style.cursor = 'grabbing';
-            e.preventDefault();
-            return;
-        }
+    if (hit.type === 'resize') {
+        const layer = textLayers.find(l => l.id === hit.layerId);
+        interaction = 'resize-' + hit.handle;
+        dragStartX = pos.x;
+        dragStartY = pos.y;
+        dragStartLayer = { ...layer };
+        canvas.style.cursor = getResizeCursor(hit.handle);
+        e.preventDefault();
+        return;
     }
     
-    // Check bottom text
-    if (bottomText && bottomTextX !== null && bottomTextY !== null) {
-        if (isNearText(pos.x, pos.y, bottomTextX, bottomTextY, bottomText)) {
-            dragging = 'bottom';
-            dragOffsetX = pos.x - bottomTextX;
-            dragOffsetY = pos.y - bottomTextY;
-            canvas.style.cursor = 'grabbing';
-            e.preventDefault();
-            return;
-        }
+    if (hit.type === 'select') {
+        selectedLayerId = hit.layerId;
+        interaction = 'move';
+        const layer = textLayers.find(l => l.id === hit.layerId);
+        dragStartX = pos.x;
+        dragStartY = pos.y;
+        dragStartLayer = { ...layer };
+        canvas.style.cursor = 'grabbing';
+        updateLayerPanel();
+        drawCanvas();
+        e.preventDefault();
+        return;
     }
     
-    dragging = null;
+    if (selectedLayerId !== null) {
+        selectedLayerId = null;
+        interaction = null;
+        updateLayerPanel();
+        drawCanvas();
+    }
 });
 
-// Mouse move - handle drag
 canvas.addEventListener('mousemove', (e) => {
     if (!image) return;
     
     const pos = getMousePos(e);
     
-    // If dragging, update position
-    if (dragging === 'top') {
-        topTextX = pos.x - dragOffsetX;
-        topTextY = pos.y - dragOffsetY;
-        // Constrain to canvas
-        topTextX = Math.max(50, Math.min(canvas.width - 50, topTextX));
-        topTextY = Math.max(10, Math.min(canvas.height - 10, topTextY));
+    if (interaction === 'move') {
+        const layer = getSelectedLayer();
+        if (!layer) return;
+        
+        const dx = pos.x - dragStartX;
+        const dy = pos.y - dragStartY;
+        layer.x = dragStartLayer.x + dx;
+        layer.y = dragStartLayer.y + dy;
+        
         drawCanvas();
         return;
     }
     
-    if (dragging === 'bottom') {
-        bottomTextX = pos.x - dragOffsetX;
-        bottomTextY = pos.y - dragOffsetY;
-        // Constrain to canvas
-        bottomTextX = Math.max(50, Math.min(canvas.width - 50, bottomTextX));
-        bottomTextY = Math.max(10, Math.min(canvas.height - 10, bottomTextY));
+    if (interaction && interaction.startsWith('resize-')) {
+        const layer = getSelectedLayer();
+        if (!layer) return;
+        
+        const handle = interaction.replace('resize-', '');
+        const dx = pos.x - dragStartX;
+        const dy = pos.y - dragStartY;
+        
+        resizeLayer(layer, handle, dx, dy);
         drawCanvas();
         return;
     }
     
-    // Update cursor for hover
-    const topText = topTextInput.value.trim();
-    const bottomText = bottomTextInput.value.trim();
-    
-    if (topText && topTextX !== null && topTextY !== null && isNearText(pos.x, pos.y, topTextX, topTextY, topText)) {
-        canvas.style.cursor = 'grab';
-    } else if (bottomText && bottomTextX !== null && bottomTextY !== null && isNearText(pos.x, pos.y, bottomTextX, bottomTextY, bottomText)) {
+    const hit = hitTest(pos.x, pos.y);
+    if (hit.type === 'delete') {
+        canvas.style.cursor = 'pointer';
+    } else if (hit.type === 'resize') {
+        canvas.style.cursor = getResizeCursor(hit.handle);
+    } else if (hit.type === 'select') {
         canvas.style.cursor = 'grab';
     } else {
         canvas.style.cursor = 'default';
     }
 });
 
-// Mouse up - end drag
 canvas.addEventListener('mouseup', () => {
-    dragging = null;
-    canvas.style.cursor = 'default';
+    if (interaction) {
+        interaction = null;
+    }
 });
 
 document.addEventListener('mouseup', () => {
-    dragging = null;
-    canvas.style.cursor = 'default';
+    if (interaction) {
+        interaction = null;
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedLayerId !== null) {
+        if (document.activeElement !== layerTextarea) {
+            e.preventDefault();
+            deleteTextLayer(selectedLayerId);
+        }
+    }
+    
+    if (e.key === 'Escape' && selectedLayerId !== null) {
+        selectedLayerId = null;
+        interaction = null;
+        updateLayerPanel();
+        drawCanvas();
+    }
 });
 
 // ============================================
 // DOWNLOAD FUNCTIONALITY
 // ============================================
 downloadBtn.addEventListener('click', () => {
-    if (!image) return;
-
-    try {
+    if (!imageDataUrl) return;
+    
+    const exportImg = new Image();
+    exportImg.onload = () => {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+        const exportCtx = exportCanvas.getContext('2d');
+        
+        exportCtx.drawImage(exportImg, 0, 0, canvas.width, canvas.height);
+        
+        textLayers.forEach(layer => {
+            drawLayerText(layer, exportCtx);
+        });
+        
         const link = document.createElement('a');
-        link.download = `meme-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.download = `meme-${Date.now()}.jpg`;
+        link.href = exportCanvas.toDataURL('image/jpeg', 0.95);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    } catch (error) {
-        alert('Error downloading image. Please try again.');
-        console.error('Download error:', error);
-    }
+    };
+    exportImg.src = imageDataUrl;
 });

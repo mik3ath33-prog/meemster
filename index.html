@@ -37,21 +37,20 @@
         <div class="control-panel">
             <div class="control-row">
                 <div class="control-item">
-                    <label for="topText">Top</label>
-                    <input type="text" id="topText" placeholder="Top text...">
+                    <button id="addTextBtn" class="action-btn" disabled>+ Add Text</button>
                 </div>
-                <div class="control-item">
-                    <label for="bottomText">Bottom</label>
-                    <input type="text" id="bottomText" placeholder="Bottom text...">
+                <div class="control-item layer-controls">
+                    <label for="layerText">Text</label>
+                    <textarea id="layerText" rows="2" placeholder="Enter text..."></textarea>
                 </div>
-                <div class="control-item">
+                <div class="control-item layer-controls">
                     <label for="fontSize">Size</label>
                     <div class="slider-container">
-                        <input type="range" id="fontSize" min="10" max="100" value="40">
-                        <span id="fontSizeValue">40</span>
+                        <input type="range" id="fontSize" min="10" max="100" value="32">
+                        <span id="fontSizeValue">32</span>
                     </div>
                 </div>
-                <div class="control-item">
+                <div class="control-item layer-controls">
                     <label for="fontFamily">Font</label>
                     <select id="fontFamily">
                         <option value="Impact">Impact</option>
@@ -61,9 +60,12 @@
                         <option value="Georgia">Georgia</option>
                     </select>
                 </div>
-                <div class="control-item">
+                <div class="control-item layer-controls">
                     <label for="textColor">Color</label>
                     <input type="color" id="textColor" value="#FFFFFF">
+                </div>
+                <div class="control-item layer-controls">
+                    <button id="deleteLayerBtn" class="delete-layer-btn" title="Delete selected text layer">Delete</button>
                 </div>
                 <div class="control-item zoom-controls">
                     <label>Zoom</label>
@@ -79,6 +81,7 @@
         </div>
     </div>
 
+    <script src="templates.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

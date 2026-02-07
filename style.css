@@ -203,20 +203,70 @@ body {
     text-align: right;
 }
 
-.control-item input[type="text"] {
-    padding: 6px 10px;
+.control-item textarea {
+    width: 160px;
+    height: 44px;
+    padding: 5px 8px;
     border: 1px solid #3a3a3a;
     border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 0.85em;
     background: #1a1a1a;
     color: #e0e0e0;
-    width: 150px;
+    resize: none;
+    font-family: inherit;
+    line-height: 1.3;
     transition: border-color 0.3s ease;
 }
 
-.control-item input[type="text"]:focus {
+.control-item textarea:focus {
     outline: none;
     border-color: #d97757;
+}
+
+.action-btn {
+    padding: 8px 14px;
+    background: #c9734f;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    white-space: nowrap;
+}
+
+.action-btn:hover:not(:disabled) {
+    background: #b85d3a;
+}
+
+.action-btn:disabled {
+    background: #3a3a3a;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.delete-layer-btn {
+    padding: 6px 12px;
+    background: transparent;
+    color: #c0392b;
+    border: 1px solid #c0392b;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.delete-layer-btn:hover {
+    background: #c0392b;
+    color: #fff;
+}
+
+.layer-controls {
+    transition: opacity 0.15s ease;
 }
 
 .control-item select {
@@ -399,7 +449,7 @@ body {
         gap: 10px;
     }
     
-    .control-item input[type="text"] {
+    .control-item textarea {
         width: 120px;
     }
 }
