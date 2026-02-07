@@ -13,6 +13,14 @@ const textColorInput = document.getElementById('textColor');
 const downloadBtn = document.getElementById('downloadBtn');
 const fileName = document.getElementById('fileName');
 
+// Zoom elements
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
+const zoomResetBtn = document.getElementById('zoomReset');
+const zoomLevelDisplay = document.getElementById('zoomLevel');
+const canvasContainer = document.getElementById('canvasContainer');
+const canvasZoomWrapper = document.getElementById('canvasZoomWrapper');
+
 // State
 let image = null;
 let fontSize = 40;
@@ -26,6 +34,10 @@ let bottomTextY = null;
 let dragging = null; // 'top', 'bottom', or null
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let zoomLevel = 1;
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 4;
 
 // Template images from assets folder
 const templates = [
@@ -173,6 +185,47 @@ textColorInput.addEventListener('input', (e) => {
     textColor = e.target.value;
     drawCanvas();
 });
+
+// ============================================
+// ZOOM CONTROLS
+// ============================================
+function updateZoom() {
+    canvas.style.transform = `scale(${zoomLevel})`;
+    // Update wrapper size so the scroll container knows the content size
+    canvasZoomWrapper.style.width = (canvas.width * zoomLevel) + 'px';
+    canvasZoomWrapper.style.height = (canvas.height * zoomLevel) + 'px';
+    zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+zoomInBtn.addEventListener('click', () => {
+    if (zoomLevel < ZOOM_MAX) {
+        zoomLevel = Math.min(ZOOM_MAX, Math.round((zoomLevel + ZOOM_STEP) * 100) / 100);
+        updateZoom();
+    }
+});
+
+zoomOutBtn.addEventListener('click', () => {
+    if (zoomLevel > ZOOM_MIN) {
+        zoomLevel = Math.max(ZOOM_MIN, Math.round((zoomLevel - ZOOM_STEP) * 100) / 100);
+        updateZoom();
+    }
+});
+
+zoomResetBtn.addEventListener('click', () => {
+    zoomLevel = 1;
+    updateZoom();
+});
+
+// Mouse wheel zoom (Ctrl+scroll)
+canvasContainer.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+        const newZoom = Math.round((zoomLevel + delta) * 100) / 100;
+        zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+        updateZoom();
+    }
+}, { passive: false });
 
 // ============================================
 // TEXT INPUT HANDLERS
@@ -335,6 +388,9 @@ function drawCanvas() {
         bottomTextX = null;
         bottomTextY = null;
     }
+
+    // Keep zoom wrapper in sync with canvas dimensions
+    updateZoom();
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);

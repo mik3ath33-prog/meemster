@@ -26,8 +26,10 @@
 
         <!-- Main Canvas Area -->
         <main class="main-content">
-            <div class="canvas-container">
-                <canvas id="memeCanvas"></canvas>
+            <div class="canvas-container" id="canvasContainer">
+                <div class="canvas-zoom-wrapper" id="canvasZoomWrapper">
+                    <canvas id="memeCanvas"></canvas>
+                </div>
             </div>
         </main>
 
@@ -45,7 +47,7 @@
                 <div class="control-item">
                     <label for="fontSize">Size</label>
                     <div class="slider-container">
-                        <input type="range" id="fontSize" min="20" max="100" value="40">
+                        <input type="range" id="fontSize" min="10" max="100" value="40">
                         <span id="fontSizeValue">40</span>
                     </div>
                 </div>
@@ -62,6 +64,13 @@
                 <div class="control-item">
                     <label for="textColor">Color</label>
                     <input type="color" id="textColor" value="#FFFFFF">
+                </div>
+                <div class="control-item zoom-controls">
+                    <label>Zoom</label>
+                    <button id="zoomOut" class="zoom-btn" title="Zoom out">-</button>
+                    <span id="zoomLevel">100%</span>
+                    <button id="zoomIn" class="zoom-btn" title="Zoom in">+</button>
+                    <button id="zoomReset" class="zoom-btn zoom-reset" title="Reset zoom">Fit</button>
                 </div>
                 <div class="control-item">
                     <button id="downloadBtn" class="download-btn" disabled>Download</button>
