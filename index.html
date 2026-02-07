@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Meme Generator</h1>
+            <p>Upload an image and add your text to create memes!</p>
+        </header>
+
+        <div class="upload-section">
+            <h2>Choose Template or Upload Image</h2>
+            <div class="template-grid" id="templateGrid">
+                <!-- Templates will be populated by JavaScript -->
+            </div>
+            <div class="upload-divider">
+                <span>OR</span>
+            </div>
+            <label for="imageUpload" class="upload-label">
+                <span>Upload Your Own Image</span>
+                <input type="file" id="imageUpload" accept="image/*">
+            </label>
+            <span id="fileName" class="file-name"></span>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="memeCanvas"></canvas>
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="topText">Top Text</label>
+                <input type="text" id="topText" placeholder="Enter top text...">
+            </div>
+
+            <div class="control-group">
+                <label for="bottomText">Bottom Text</label>
+                <input type="text" id="bottomText" placeholder="Enter bottom text...">
+            </div>
+
+            <div class="control-group">
+                <label for="fontSize">Font Size: <span id="fontSizeValue">40</span>px</label>
+                <input type="range" id="fontSize" min="20" max="100" value="40">
+            </div>
+
+            <div class="control-group">
+                <label for="fontFamily">Font Family</label>
+                <select id="fontFamily">
+                    <option value="Impact">Impact</option>
+                    <option value="Arial Black">Arial Black</option>
+                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Georgia">Georgia</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="textColor">Text Color</label>
+                <input type="color" id="textColor" value="#FFFFFF">
+            </div>
+        </div>
+
+        <div class="download-section">
+            <button id="downloadBtn" class="download-btn" disabled>Download Meme</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
