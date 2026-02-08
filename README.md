@@ -1,6 +1,6 @@
-# Meme Generator
+# Meme Generator - Full Stack App
 
-A powerful, web-based meme generator with a Photoshop-like text layer system. Upload your own images or use built-in templates, then add unlimited customizable text boxes that you can position, resize, and style exactly where you want them.
+A powerful, full-stack meme generator built with Next.js and InstantDB. Create memes with a Photoshop-like text layer system, then share them with the community. Upload your own images or use built-in templates, add unlimited customizable text boxes, and let others upvote your creations!
 
 ## Features
 
@@ -26,9 +26,13 @@ A powerful, web-based meme generator with a Photoshop-like text layer system. Up
 - **Fit to Screen**: Reset zoom to 100% with the "Fit" button
 - **Scrollable Canvas**: When zoomed in, scroll around the canvas to position text precisely
 
-### Export
+### Export & Sharing
 - **Download as JPEG**: Export your finished meme as a high-quality JPEG image
 - **Clean Export**: Selection handles and UI elements are automatically hidden in the downloaded image
+- **Post to Feed**: Share your memes with the community
+- **Browse Feed**: View all memes posted by users
+- **Upvote System**: Upvote your favorite memes
+- **Real-time Updates**: See new memes and upvotes in real-time
 
 ## Usage
 
@@ -62,22 +66,68 @@ A powerful, web-based meme generator with a Photoshop-like text layer system. Up
    - Use the +/- buttons for step-by-step zoom
    - Click "Fit" to return to 100% zoom
 
-7. **Download**:
+7. **Download or Post**:
    - Click the "Download" button to save your meme as a JPEG file
+   - Click "Post Meme" to share it with the community (requires sign-in)
    - The filename includes a timestamp
+
+8. **Browse Feed**:
+   - Navigate to the Feed page to see all posted memes
+   - Upvote memes you like
+   - View memes sorted by newest first
 
 ## Keyboard Shortcuts
 
 - **Delete/Backspace**: Delete the selected text layer (when not editing text)
 - **Escape**: Deselect the current text layer
 
+## Tech Stack
+
+- **Framework**: Next.js 14+ (App Router)
+- **Database**: InstantDB (real-time database)
+- **Storage**: InstantDB Storage (for meme images)
+- **Authentication**: InstantDB Auth (magic codes & guest auth)
+- **Language**: TypeScript
+- **Styling**: CSS Modules
+
 ## File Structure
 
-- `index.html` - Main HTML structure and UI layout
-- `style.css` - Styling, dark mode theme, and responsive design
-- `script.js` - Core functionality: canvas rendering, text layer system, zoom controls
-- `templates.js` - Embedded template images as base64 data URLs
-- `assets/` - Template image files (embedded in templates.js for cross-browser compatibility)
+```
+/
+├── app/
+│   ├── layout.tsx              # Root layout with InstantDB provider
+│   ├── page.tsx                # Meme generator page
+│   ├── feed/
+│   │   └── page.tsx            # Meme feed page
+│   ├── globals.css             # Global styles
+│   ├── meme-generator.css      # Meme generator styles
+│   └── feed/
+│       └── feed.css            # Feed page styles
+├── components/
+│   ├── MemeCanvas.tsx          # Canvas component with text layers
+│   ├── TemplateSelector.tsx    # Template sidebar
+│   ├── ControlPanel.tsx        # Bottom control panel
+│   ├── MemeCard.tsx            # Feed meme card with upvote
+│   └── AuthButton.tsx          # Login/logout component
+├── lib/
+│   └── db.ts                   # InstantDB initialization
+├── instant.schema.ts           # Database schema
+├── instant.perms.ts            # Database permissions
+├── public/
+│   └── templates.js            # Template images (base64)
+└── package.json                # Dependencies
+```
+
+## Setup
+
+See [SETUP.md](SETUP.md) for detailed installation and deployment instructions.
+
+Quick start:
+```bash
+npm install
+npx instant-cli@latest push  # Deploy schema
+npm run dev
+```
 
 ## Browser Compatibility
 

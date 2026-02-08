@@ -1,0 +1,166 @@
+.feed-container {
+  min-height: 100vh;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #3a3a3a;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.feed-header h1 {
+  color: #d97757;
+  font-size: 2em;
+  margin: 0;
+  font-weight: 600;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  background: #c9734f;
+  color: white;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.nav-link:hover {
+  background: #b85d3a;
+  text-decoration: none;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #b0b0b0;
+  font-size: 1.1em;
+}
+
+.error {
+  color: #c0392b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #b0b0b0;
+}
+
+.empty-state p {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+.meme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.meme-card {
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.meme-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.meme-image-container {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.meme-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.meme-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #252525;
+}
+
+.upvote-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #b0b0b0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9em;
+}
+
+.upvote-btn:hover:not(:disabled) {
+  border-color: #d97757;
+  color: #d97757;
+}
+
+.upvote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upvote-btn.upvoted {
+  background: #d97757;
+  border-color: #d97757;
+  color: white;
+}
+
+.upvote-btn.upvoted:hover:not(:disabled) {
+  background: #b85d3a;
+  border-color: #b85d3a;
+}
+
+.upvote-icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.upvote-count {
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+.meme-date {
+  color: #666;
+  font-size: 0.85em;
+}
+
+@media (max-width: 768px) {
+  .meme-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feed-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

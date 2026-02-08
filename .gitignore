@@ -39,3 +39,23 @@ pids
 # Temporary files
 *.tmp
 *.temp
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Environment variables
+.env*.local
+.env
+
+# Node modules
+node_modules/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
