@@ -67,24 +67,11 @@ export default function HomePage() {
         throw new Error('Failed to export canvas');
       }
 
-      // Convert data URL to blob
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      
-      // Upload to InstantDB Storage
-      const filename = `memes/${user.id}/${Date.now()}.jpg`;
-      await db.storage.uploadFile(filename, blob, {
-        contentType: 'image/jpeg',
-      });
-
-      // Get the download URL for the uploaded file
-      const downloadUrl = await db.storage.getDownloadUrl(filename);
-
-      // Create meme record
+      // Create meme record with the data URL directly
       const memeId = genId();
       await db.transact(
         db.tx.memes[memeId].update({
-          imageUrl: downloadUrl,
+          imageUrl: dataUrl,
           userId: user.id,
           createdAt: Date.now(),
         })
