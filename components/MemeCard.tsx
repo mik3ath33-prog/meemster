@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/lib/db';
+import { db, genId } from '@/lib/db';
 import { useState } from 'react';
 
 interface Meme {
@@ -53,7 +53,7 @@ export default function MemeCard({ meme }: MemeCardProps) {
       } else {
         // Add upvote
         await db.transact(
-          db.tx.upvotes[db.id()].update({
+          db.tx.upvotes[genId()].update({
             memeId: meme.id,
             userId: user.id,
             createdAt: Date.now(),

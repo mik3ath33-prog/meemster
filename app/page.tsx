@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/db';
+import { db, genId } from '@/lib/db';
 import MemeCanvas, { MemeCanvasRef } from '@/components/MemeCanvas';
 import TemplateSelector from '@/components/TemplateSelector';
 import ControlPanel from '@/components/ControlPanel';
@@ -73,15 +73,18 @@ export default function HomePage() {
       
       // Upload to InstantDB Storage
       const filename = `memes/${user.id}/${Date.now()}.jpg`;
-      const storageUrl = await db.storage.uploadFile(filename, blob, {
+      await db.storage.uploadFile(filename, blob, {
         contentType: 'image/jpeg',
       });
 
+      // Get the download URL for the uploaded file
+      const downloadUrl = await db.storage.getDownloadUrl(filename);
+
       // Create meme record
-      const memeId = db.id();
+      const memeId = genId();
       await db.transact(
         db.tx.memes[memeId].update({
-          imageUrl: storageUrl,
+          imageUrl: downloadUrl,
           userId: user.id,
           createdAt: Date.now(),
         })

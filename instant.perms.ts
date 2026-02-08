@@ -1,6 +1,4 @@
-import type { AppSchema } from './instant.schema';
-
-const perms: AppSchema['perms'] = {
+const perms = {
   rules: {
     memes: {
       allow: {

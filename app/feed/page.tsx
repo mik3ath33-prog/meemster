@@ -10,7 +10,7 @@ export default function FeedPage() {
   const { data, isLoading, error } = db.useQuery({
     memes: {
       $: {
-        order: { createdAt: 'desc' },
+        order: { serverCreatedAt: 'desc' },
       },
     },
   });

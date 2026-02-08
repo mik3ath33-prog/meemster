@@ -258,7 +258,7 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
       };
     }, []);
 
-    const hitTest = useCallback((mouseX: number, mouseY: number) => {
+    const hitTest = useCallback((mouseX: number, mouseY: number): { type: string; layerId?: number; handle?: string } => {
       if (selectedLayerId !== null) {
         const layer = getSelectedLayer();
         if (layer) {
@@ -294,7 +294,7 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
       const pos = getMousePos(e);
       const hit = hitTest(pos.x, pos.y);
       
-      if (hit.type === 'delete') {
+      if (hit.type === 'delete' && hit.layerId !== undefined) {
         setTextLayers(prev => prev.filter(l => l.id !== hit.layerId));
         if (selectedLayerId === hit.layerId) {
           setSelectedLayerId(null);
@@ -302,7 +302,7 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
         return;
       }
       
-      if (hit.type === 'resize') {
+      if (hit.type === 'resize' && hit.layerId !== undefined) {
         const layer = textLayers.find(l => l.id === hit.layerId);
         if (layer) {
           setInteraction('resize-' + hit.handle);
@@ -312,7 +312,7 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
         return;
       }
       
-      if (hit.type === 'select') {
+      if (hit.type === 'select' && hit.layerId !== undefined) {
         setSelectedLayerId(hit.layerId);
         setInteraction('move');
         const layer = textLayers.find(l => l.id === hit.layerId);
