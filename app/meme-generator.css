@@ -183,7 +183,6 @@
   -moz-user-select: none;
   -ms-user-select: none;
   touch-action: none;
-  transform-origin: 0 0;
 }
 
 .control-panel {

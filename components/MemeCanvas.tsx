@@ -45,6 +45,7 @@ const ZOOM_MAX = 4;
 const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
   ({ imageDataUrl, onImageReady, onSelectionChange }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const baseDimsRef = useRef<{ width: number; height: number }>({ width: 600, height: 400 });
   const [zoomLevel, setZoomLevel] = useState(1);
     const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
     const [nextLayerId, setNextLayerId] = useState(1);
@@ -183,30 +184,45 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Compute logical dimensions (fit image to max 600x400)
       const maxWidth = 600;
       const maxHeight = 400;
-      let width = image.width;
-      let height = image.height;
+      let logicalW = image.width;
+      let logicalH = image.height;
       
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width;
-        width = maxWidth;
+      if (logicalW > maxWidth) {
+        logicalH = (logicalH * maxWidth) / logicalW;
+        logicalW = maxWidth;
       }
-      if (height > maxHeight) {
-        width = (width * maxHeight) / height;
-        height = maxHeight;
-      }
-      
-      width = Math.round(width);
-      height = Math.round(height);
-      
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
+      if (logicalH > maxHeight) {
+        logicalW = (logicalW * maxHeight) / logicalH;
+        logicalH = maxHeight;
       }
       
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, width, height);
+      logicalW = Math.round(logicalW);
+      logicalH = Math.round(logicalH);
+      baseDimsRef.current = { width: logicalW, height: logicalH };
+      
+      // Render scale: DPR * zoom for crisp text at every zoom level
+      const renderScale = dpr * zoomLevel;
+      const bufferW = Math.round(logicalW * renderScale);
+      const bufferH = Math.round(logicalH * renderScale);
+      
+      // Set buffer size (actual pixel resolution)
+      canvas.width = bufferW;
+      canvas.height = bufferH;
+      
+      // Set CSS display size (visual size on screen)
+      canvas.style.width = Math.round(logicalW * zoomLevel) + 'px';
+      canvas.style.height = Math.round(logicalH * zoomLevel) + 'px';
+      
+      // Scale context so all drawing uses logical coordinates
+      ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
+      
+      ctx.clearRect(0, 0, logicalW, logicalH);
+      ctx.drawImage(image, 0, 0, logicalW, logicalH);
       
       textLayers.forEach(layer => {
         drawLayerText(layer, ctx);
@@ -218,7 +234,7 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
           drawSelectionUI(layer, ctx);
         }
       }
-    }, [image, textLayers, selectedLayerId, getSelectedLayer, drawLayerText, drawSelectionUI]);
+    }, [image, textLayers, selectedLayerId, zoomLevel, getSelectedLayer, drawLayerText, drawSelectionUI]);
 
     useEffect(() => {
       if (imageDataUrl) {
@@ -250,11 +266,11 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
       if (!canvas) return { x: 0, y: 0 };
       
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const dims = baseDimsRef.current;
+      // Map CSS pixels to logical coordinates
       return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
+        x: (e.clientX - rect.left) * (dims.width / rect.width),
+        y: (e.clientY - rect.top) * (dims.height / rect.height)
       };
     }, []);
 
@@ -383,6 +399,9 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
               newLayer.y = orig.y + orig.height - newLayer.height;
               break;
           }
+          // Scale font size proportionally with box width
+          const widthScale = newLayer.width / orig.width;
+          newLayer.fontSize = Math.max(8, Math.round(orig.fontSize * widthScale));
           setTextLayers(prev => prev.map(l => l.id === layer.id ? newLayer : l));
         }
         return;
@@ -498,27 +517,30 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
 
     const exportCanvas = (): Promise<string> => {
       return new Promise((resolve) => {
-        const canvas = canvasRef.current;
-        if (!canvas || !imageDataUrl) {
+        if (!image || !imageDataUrl) {
           resolve('');
           return;
         }
         
+        const dims = baseDimsRef.current;
+        const EXPORT_SCALE = 2; // Always export at 2x for crisp quality
+        
         const exportImg = new Image();
         exportImg.onload = () => {
-          const exportCanvas = document.createElement('canvas');
-          exportCanvas.width = canvas.width;
-          exportCanvas.height = canvas.height;
-          const exportCtx = exportCanvas.getContext('2d');
+          const exportEl = document.createElement('canvas');
+          exportEl.width = Math.round(dims.width * EXPORT_SCALE);
+          exportEl.height = Math.round(dims.height * EXPORT_SCALE);
+          const exportCtx = exportEl.getContext('2d');
           
           if (exportCtx) {
-            exportCtx.drawImage(exportImg, 0, 0, canvas.width, canvas.height);
+            exportCtx.setTransform(EXPORT_SCALE, 0, 0, EXPORT_SCALE, 0, 0);
+            exportCtx.drawImage(exportImg, 0, 0, dims.width, dims.height);
             
             textLayers.forEach(layer => {
               drawLayerText(layer, exportCtx);
             });
             
-            resolve(exportCanvas.toDataURL('image/jpeg', 0.95));
+            resolve(exportEl.toDataURL('image/jpeg', 0.95));
           } else {
             resolve('');
           }
@@ -528,17 +550,6 @@ const MemeCanvas = forwardRef<MemeCanvasRef, MemeCanvasProps>(
     };
 
     const zoomWrapperRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      if (zoomWrapperRef.current) {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.style.transform = `scale(${zoomLevel})`;
-          zoomWrapperRef.current.style.width = (canvas.width * zoomLevel) + 'px';
-          zoomWrapperRef.current.style.height = (canvas.height * zoomLevel) + 'px';
-        }
-      }
-    }, [zoomLevel]);
 
     useImperativeHandle(ref, () => ({
       addTextLayer,
