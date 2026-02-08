@@ -51,9 +51,12 @@ export default function HomePage() {
     }
   };
 
+  // Only allow posting for signed-in users with an email (not guests)
+  const isSignedInUser = !!user && !user.isGuest;
+
   const handlePost = async () => {
     if (!user || !imageDataUrl) {
-      alert('Please sign in to post memes');
+      alert('Please sign in with your email to post memes.');
       return;
     }
 
@@ -121,7 +124,7 @@ export default function HomePage() {
         canvasRef={canvasRef}
         onDownload={handleDownload}
         onPost={handlePost}
-        canPost={!!user}
+        canPost={isSignedInUser}
         isPosting={isPosting}
         selectedLayerId={selectedLayerId}
       />

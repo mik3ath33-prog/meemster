@@ -20,3 +20,112 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* Auth Component */
+.auth-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-input {
+  padding: 7px 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 0.85em;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-family: inherit;
+  min-width: 160px;
+  transition: border-color 0.2s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #d97757;
+}
+
+.auth-input::placeholder {
+  color: #666;
+}
+
+.user-info {
+  color: #b0b0b0;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.auth-btn {
+  padding: 7px 14px;
+  background: #c9734f;
+  color: white;
+  border: 1px solid #c9734f;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.auth-btn:hover:not(:disabled) {
+  background: #b85d3a;
+  border-color: #b85d3a;
+}
+
+.auth-btn:disabled {
+  background: #3a3a3a;
+  border-color: #3a3a3a;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-btn-secondary {
+  background: transparent;
+  color: #b0b0b0;
+  border: 1px solid #3a3a3a;
+}
+
+.auth-btn-secondary:hover:not(:disabled) {
+  background: transparent;
+  border-color: #d97757;
+  color: #d97757;
+}
+
+.auth-btn-secondary:disabled {
+  background: transparent;
+  border-color: #3a3a3a;
+  color: #555;
+}
+
+/* Shared action button (used across pages) */
+.action-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #c9734f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #b85d3a;
+  text-decoration: none;
+}
+
+.action-btn:disabled {
+  background: #3a3a3a;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -46,23 +46,24 @@ export default function AuthButton() {
     setShowCodeInput(false);
   };
 
-  const handleGuestSignIn = async () => {
+  const handleGuestSignIn = () => {
     setIsLoading(true);
-    try {
-      await db.auth.signInAsGuest();
-    } catch (error) {
-      console.error('Failed to sign in as guest:', error);
-      alert('Failed to sign in as guest. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    db.auth
+      .signInAsGuest()
+      .catch((err: any) => {
+        console.error('Failed to sign in as guest:', err);
+        alert('Failed to sign in as guest: ' + (err?.body?.message || err?.message || 'Unknown error'));
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   if (user) {
     return (
       <div className="auth-button">
         <span className="user-info">Signed in as {user.email || 'Guest'}</span>
-        <button onClick={handleSignOut} className="action-btn" disabled={isLoading}>
+        <button onClick={handleSignOut} className="auth-btn auth-btn-secondary" disabled={isLoading}>
           Sign Out
         </button>
       </div>
@@ -82,17 +83,17 @@ export default function AuthButton() {
           />
           <button
             onClick={handleSendCode}
-            className="action-btn"
+            className="auth-btn"
             disabled={isLoading || !email}
           >
             {isLoading ? 'Sending...' : 'Send Code'}
           </button>
           <button
             onClick={handleGuestSignIn}
-            className="action-btn"
+            className="auth-btn auth-btn-secondary"
             disabled={isLoading}
           >
-            Continue as Guest
+            {isLoading ? 'Signing in...' : 'Guest'}
           </button>
         </>
       ) : (
@@ -107,7 +108,7 @@ export default function AuthButton() {
           />
           <button
             onClick={handleSignIn}
-            className="action-btn"
+            className="auth-btn"
             disabled={isLoading || code.length !== 6}
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
@@ -117,7 +118,7 @@ export default function AuthButton() {
               setShowCodeInput(false);
               setCode('');
             }}
-            className="action-btn"
+            className="auth-btn auth-btn-secondary"
             disabled={isLoading}
           >
             Back
